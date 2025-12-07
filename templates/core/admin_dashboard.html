@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <h2>Quản trị viên - Tất cả tệp tin</h2>
+    <p class="text-muted">Xem và quản lý tệp tin của tất cả người dùng.</p>
+</div>
+
+<!-- All Root Folders -->
+<h5 class="text-muted mb-3">Tất cả thư mục gốc</h5>
+<div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 mb-4">
+    {% for sub in root_folders %}
+    <div class="col">
+        <div class="card card-folder h-100 shadow-sm text-center p-3 border-danger">
+            <div class="dropdown position-absolute top-0 end-0">
+                <button class="btn btn-link text-muted" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'download_folder_zip' sub.id %}"><i
+                                class="bi bi-download"></i> Tải xuống (.zip)</a></li>
+                    <li><a class="dropdown-item" href="{% url 'rename_folder' sub.id %}"><i class="bi bi-pencil"></i>
+                            Đổi tên</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item text-danger" href="{% url 'delete_folder' sub.id %}"
+                            onclick="return confirm('Bạn chắc chắn muốn xóa thư mục này?')"><i class="bi bi-trash"></i>
+                            Xóa</a></li>
+                </ul>
+            </div>
+            <a href="{% url 'folder_detail' sub.id %}" class="text-decoration-none text-dark">
+                <i class="bi bi-folder-fill folder-icon text-danger"></i>
+                <div class="mt-2 text-truncate" title="{{ sub.name }}">{{ sub.name }}</div>
+                <span class="badge bg-secondary rounded-pill mt-1">{{ sub.user.username }}</span>
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-muted">Không có thư mục nào.</div>
+    {% endfor %}
+</div>
+
+<!-- All Root Files -->
+<h5 class="text-muted mb-3">Tất cả tệp tin gốc</h5>
+<div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+    {% for f in root_files %}
+    <div class="col">
+        <div class="card h-100 shadow-sm text-center p-3 border-danger">
+            <div class="dropdown position-absolute top-0 end-0">
+                <button class="btn btn-link text-muted" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'download_file' f.id %}"><i class="bi bi-download"></i>
+                            Tải xuống</a></li>
+                    <li><a class="dropdown-item" href="{% url 'rename_file' f.id %}"><i class="bi bi-pencil"></i> Đổi
+                            tên</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item text-danger" href="{% url 'delete_file' f.id %}"
+                            onclick="return confirm('Bạn chắc chắn muốn xóa tệp này?')"><i class="bi bi-trash"></i>
+                            Xóa</a></li>
+                </ul>
+            </div>
+            <div class="mb-2">
+                <i class="bi bi-file-earmark-text-fill file-icon text-danger"></i>
+            </div>
+            <div class="text-truncate small" title="{{ f.name }}">{{ f.name }}</div>
+            <span class="badge bg-secondary rounded-pill mt-1">{{ f.user.username }}</span>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-muted">Không có tệp tin nào.</div>
+    {% endfor %}
+</div>
+{% endblock %}

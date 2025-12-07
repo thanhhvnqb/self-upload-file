@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0">Đổi tên {{ type }}</h4>
+            </div>
+            <div class="card-body">
+                <p>Đổi tên cho: <strong>{{ obj.name }}</strong></p>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Lưu</button>
+                        <a href="{% if obj.folder %}{% url 'folder_detail' obj.folder.id %}{% elif obj.parent %}{% url 'folder_detail' obj.parent.id %}{% else %}{% url 'dashboard' %}{% endif %}"
+                            class="btn btn-secondary">Hủy</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

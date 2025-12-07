@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">
+            {% if folder %}
+            {{ folder.name }}
+            {% else %}
+            Tài liệu của tôi
+            {% endif %}
+        </h2>
+        {% if folder %}
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Home</a></li>
+                <!-- Minimal breadcrumb for now -->
+                {% if folder.parent %}
+                <li class="breadcrumb-item"><a href="{% url 'folder_detail' folder.parent.id %}">...</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active">{{ folder.name }}</li>
+            </ol>
+        </nav>
+        {% endif %}
+    </div>
+
+    <div class="btn-group">
+        {% if folder %}
+        <a href="{% url 'download_folder_zip' folder.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-download"></i> Tải thư mục (.zip)
+        </a>
+        <a href="{% url 'delete_folder' folder.id %}" class="btn btn-outline-danger"
+            onclick="return confirm('Bạn có chắc chắn muốn xóa thư mục này và toàn bộ nội dung bên trong?')">
+            <i class="bi bi-trash"></i> Xóa thư mục
+        </a>
+        {% endif %}
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createFolderModal">
+            <i class="bi bi-folder-plus"></i> Tạo thư mục
+        </button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
+            <i class="bi bi-cloud-upload"></i> Tải lên
+        </button>
+    </div>
+</div>
+
+<!-- Folders -->
+<h5 class="text-muted mb-3">Thư mục</h5>
+<div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3 mb-4">
+    {% for sub in subfolders %}
+    <div class="col">
+        <div class="card card-folder h-100 shadow-sm text-center p-3">
+            <div class="dropdown position-absolute top-0 end-0">
+                <button class="btn btn-link text-muted" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'download_folder_zip' sub.id %}"><i
+                                class="bi bi-download"></i> Tải xuống</a></li>
+                    <li><a class="dropdown-item" href="{% url 'rename_folder' sub.id %}"><i class="bi bi-pencil"></i>
+                            Đổi tên</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item text-danger" href="{% url 'delete_folder' sub.id %}"
+                            onclick="return confirm('Bạn chắc chắn muốn xóa thư mục này?')"><i class="bi bi-trash"></i>
+                            Xóa</a></li>
+                </ul>
+            </div>
+            <a href="{% url 'folder_detail' sub.id %}" class="text-decoration-none text-dark">
+                <i class="bi bi-folder-fill folder-icon"></i>
+                <div class="mt-2 text-truncate" title="{{ sub.name }}">{{ sub.name }}</div>
+            </a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-muted">Không có thư mục nào.</div>
+    {% endfor %}
+</div>
+
+<!-- Files -->
+<h5 class="text-muted mb-3">Tệp tin</h5>
+<div class="row row-cols-2 row-cols-md-4 row-cols-lg-6 g-3">
+    {% for f in files %}
+    <div class="col">
+        <div class="card h-100 shadow-sm text-center p-3">
+            <div class="dropdown position-absolute top-0 end-0">
+                <button class="btn btn-link text-muted" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'download_file' f.id %}"><i class="bi bi-download"></i>
+                            Tải xuống</a></li>
+                    <li><a class="dropdown-item" href="{% url 'rename_file' f.id %}"><i class="bi bi-pencil"></i> Đổi
+                            tên</a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item text-danger" href="{% url 'delete_file' f.id %}"
+                            onclick="return confirm('Bạn chắc chắn muốn xóa tệp này?')"><i class="bi bi-trash"></i>
+                            Xóa</a></li>
+                </ul>
+            </div>
+            <div class="mb-2">
+                <i class="bi bi-file-earmark-text-fill file-icon"></i>
+            </div>
+            <div class="text-truncate small" title="{{ f.name }}">{{ f.name }}</div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-muted">Không có tệp tin nào.</div>
+    {% endfor %}
+</div>
+
+<!-- Create Folder Modal -->
+<div class="modal fade" id="createFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post"
+                action="{% if folder %}{% url 'create_folder' folder.id %}{% else %}{% url 'create_folder_root' %}{% endif %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Tạo thư mục mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{ folder_form.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Tạo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Upload File Modal -->
+<div class="modal fade" id="uploadFileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" enctype="multipart/form-data"
+                action="{% if folder %}{% url 'upload_file' folder.id %}{% else %}{% url 'upload_file_root' %}{% endif %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Tải lên tệp tin</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    {{ upload_form.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Tải lên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
