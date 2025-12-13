@@ -12,6 +12,9 @@ from io import BytesIO
 
 @login_required
 def dashboard(request, folder_id=None):
+    if request.user.is_superuser and folder_id is None and request.GET.get('view') != 'personal':
+        return redirect('admin_dashboard')
+
     folder = None
     if folder_id:
         if request.user.is_superuser:
@@ -125,6 +128,10 @@ def download_folder_zip(request, folder_id):
     # Determine if checking for own folder or admin checking any folder
     if request.user.is_superuser:
          folder = get_object_or_404(Folder, id=folder_id)
+         # Mark as downloaded if admin
+         if not folder.is_downloaded:
+             folder.is_downloaded = True
+             folder.save()
     else:
          folder = get_object_or_404(Folder, id=folder_id, user=request.user)
 
@@ -213,3 +220,75 @@ def admin_dashboard(request):
         'is_admin_view': True
     }
     return render(request, 'core/admin_dashboard.html', context)
+
+@login_required
+def download_all_zip(request):
+    if not request.user.is_superuser:
+        raise Http404
+
+    root_folders = Folder.objects.filter(parent__isnull=True)
+    
+    # Create a temporary file for the master zip to avoid high memory usage
+    import tempfile
+    
+    # We will write the master zip to a temp file
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_master_zip:
+        with zipfile.ZipFile(temp_master_zip, 'w', zipfile.ZIP_DEFLATED) as master_zip:
+            used_names = set()
+            for folder in root_folders:
+                # Create in-memory zip for this folder
+                folder_buffer = BytesIO()
+                with zipfile.ZipFile(folder_buffer, 'w', zipfile.ZIP_DEFLATED) as folder_zip:
+                    _add_folder_to_zip(folder_zip, folder, folder.name)
+                
+                # Determine unique filename
+                base_name = folder.name
+                candidate_name = base_name
+                counter = 1
+                while candidate_name in used_names:
+                    candidate_name = f"{base_name}_{counter}"
+                    counter += 1
+                used_names.add(candidate_name)
+                
+                zip_name = f"{candidate_name}.zip"
+                master_zip.writestr(zip_name, folder_buffer.getvalue())
+                
+                # Update status
+                if not folder.is_downloaded:
+                    folder.is_downloaded = True
+                    folder.save()
+                    
+        temp_master_zip.seek(0)
+        # Read content to return (warning: if very large, this is still memory heavy, 
+        # but better than holding everything in RAM twice during construction)
+        # For true scalability, we'd use FileResponse with a generator or stream from disk.
+        # Given constraints, we'll read it back or pass the file handle.
+        
+        # Re-open for reading
+        
+    # Serve the file
+    # We use FileResponse for efficiency if possible or open it
+    # We need to make sure it's deleted after. 
+    # Simpler for now: Read into memory and return, then delete temp. 
+    # (Not ideal for GBs of data, but fine for prototype)
+    with open(temp_master_zip.name, 'rb') as f:
+        data = f.read()
+    
+    os.unlink(temp_master_zip.name)
+    
+    response = HttpResponse(data, content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename=all_folders.zip'
+    return response
+
+@login_required
+def delete_downloaded_items(request):
+    if not request.user.is_superuser:
+        raise Http404
+        
+    if request.method == 'POST':
+        # Delete all folders that are marked as downloaded
+        deleted_count, _ = Folder.objects.filter(is_downloaded=True).delete()
+        # Add message
+        # from django.contrib import messages (ensure imported if not already)
+    
+    return redirect('admin_dashboard')

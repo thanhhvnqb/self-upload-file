@@ -1,9 +1,24 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="mb-4">
-    <h2>Quản trị viên - Tất cả tệp tin</h2>
-    <p class="text-muted">Xem và quản lý tệp tin của tất cả người dùng.</p>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Quản trị viên - Tất cả tệp tin</h2>
+        <p class="text-muted mb-0">Xem và quản lý tệp tin của tất cả người dùng.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'download_all_zip' %}" class="btn btn-primary"
+            onclick="return confirm('Tải toàn bộ thư mục? Quá trình này có thể mất thời gian.')">
+            <i class="bi bi-cloud-download"></i> Tải toàn bộ (.zip)
+        </a>
+        <form action="{% url 'delete_downloaded_items' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger"
+                onclick="return confirm('CẢNH BÁO: Hành động này sẽ XÓA VĨNH VIỄN tất cả các thư mục đã được tải xuống và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục?')">
+                <i class="bi bi-trash"></i> Xóa đã tải
+            </button>
+        </form>
+    </div>
 </div>
 
 <!-- All Root Folders -->
@@ -30,7 +45,8 @@
                 </ul>
             </div>
             <a href="{% url 'folder_detail' sub.id %}" class="text-decoration-none text-dark">
-                <i class="bi bi-folder-fill folder-icon text-danger"></i>
+                <i
+                    class="bi bi-folder-fill folder-icon {% if sub.is_downloaded %}text-success{% else %}text-danger{% endif %}"></i>
                 <div class="mt-2 text-truncate" title="{{ sub.name }}">{{ sub.name }}</div>
                 <span class="badge bg-secondary rounded-pill mt-1">{{ sub.user.username }}</span>
             </a>

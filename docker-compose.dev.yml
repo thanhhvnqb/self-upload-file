@@ -16,16 +16,3 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py runserver 0.0.0.0:8000"
-
-  ngrok:
-    image: ngrok/ngrok:latest
-    restart: unless-stopped
-    command: http --domain=${NGROK_DOMAIN} web:8000
-    ports:
-      - "4040:4040"
-    env_file:
-      - .env
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    depends_on:
-      - web
