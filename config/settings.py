@@ -19,6 +19,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-secret-key-dev-only')
 DEBUG = os.environ.get('DEBUG', '1') == '1'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000', 
     'http://127.0.0.1:8000',

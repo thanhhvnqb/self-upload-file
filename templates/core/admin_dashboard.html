@@ -11,11 +11,22 @@
             onclick="return confirm('Tải toàn bộ thư mục? Quá trình này có thể mất thời gian.')">
             <i class="bi bi-cloud-download"></i> Tải toàn bộ (.zip)
         </a>
+        <a href="{% url 'download_oldest_20_zip' %}" class="btn btn-warning"
+            onclick="return confirm('Tải 20 thư mục cũ nhất? (.zip)')">
+            <i class="bi bi-clock-history"></i> Tải 20 cũ nhất (.zip)
+        </a>
         <form action="{% url 'delete_downloaded_items' %}" method="post" style="display:inline;">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger"
                 onclick="return confirm('CẢNH BÁO: Hành động này sẽ XÓA VĨNH VIỄN tất cả các thư mục đã được tải xuống và không thể khôi phục. Bạn có chắc chắn muốn tiếp tục?')">
                 <i class="bi bi-trash"></i> Xóa đã tải
+            </button>
+        </form>
+        <form action="{% url 'reset_download_status' %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary"
+                onclick="return confirm('Bạn có chắc chắn muốn đặt lại trạng thái của tất cả thư mục thành CHƯA tải xuống?')">
+                <i class="bi bi-arrow-counterclockwise"></i> Hủy đã tải
             </button>
         </form>
     </div>

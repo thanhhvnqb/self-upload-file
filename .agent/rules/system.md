@@ -7,7 +7,7 @@ trigger: always_on
 - Architecture Consistency: Any modification to the project's architecture must be reflected in Specification.md immediately.
 
 2. Environment & Deployment
-- Containerization: Use Docker to run the application in both development and production environments to ensure consistency.
+- Containerization: Use Docker to run the application in agent, development, and production environments to ensure consistency.
 
 3. User Interface (UI/UX)
 - Visual Style: The application must feature a modern, polished, and aesthetically pleasing interface.

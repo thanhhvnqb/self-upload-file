@@ -228,56 +228,84 @@ def download_all_zip(request):
 
     root_folders = Folder.objects.filter(parent__isnull=True)
     
-    # Create a temporary file for the master zip to avoid high memory usage
+    # Create a temporary file for the master zip
+    # We use a temp file to avoid loading everything into RAM
     import tempfile
+    from django.http import FileResponse
     
-    # We will write the master zip to a temp file
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_master_zip:
-        with zipfile.ZipFile(temp_master_zip, 'w', zipfile.ZIP_DEFLATED) as master_zip:
-            used_names = set()
-            for folder in root_folders:
-                # Create in-memory zip for this folder
-                folder_buffer = BytesIO()
-                with zipfile.ZipFile(folder_buffer, 'w', zipfile.ZIP_DEFLATED) as folder_zip:
-                    _add_folder_to_zip(folder_zip, folder, folder.name)
-                
-                # Determine unique filename
-                base_name = folder.name
-                candidate_name = base_name
-                counter = 1
-                while candidate_name in used_names:
-                    candidate_name = f"{base_name}_{counter}"
-                    counter += 1
-                used_names.add(candidate_name)
-                
-                zip_name = f"{candidate_name}.zip"
-                master_zip.writestr(zip_name, folder_buffer.getvalue())
-                
-                # Update status
-                if not folder.is_downloaded:
-                    folder.is_downloaded = True
-                    folder.save()
-                    
-        temp_master_zip.seek(0)
-        # Read content to return (warning: if very large, this is still memory heavy, 
-        # but better than holding everything in RAM twice during construction)
-        # For true scalability, we'd use FileResponse with a generator or stream from disk.
-        # Given constraints, we'll read it back or pass the file handle.
-        
-        # Re-open for reading
-        
-    # Serve the file
-    # We use FileResponse for efficiency if possible or open it
-    # We need to make sure it's deleted after. 
-    # Simpler for now: Read into memory and return, then delete temp. 
-    # (Not ideal for GBs of data, but fine for prototype)
-    with open(temp_master_zip.name, 'rb') as f:
-        data = f.read()
+    # Create a named temporary file that persists until we close and delete it manually
+    # (or let FileResponse handle closing, but we need to ensure deletion)
+    # Actually, with delete=True (default), it's deleted on close. 
+    # But we need to close it after writing to read it? 
+    # Or just seek(0)?
+    # Windows has issues with opening same temp file twice, but this is Linux (Docker).
+    # Best practice for Django FileResponse with temp file:
+    # Use delete=False, then use background task or middleware to delete?
+    # Or rely on OS to clean up /tmp?
+    # Let's use delete=True and pass the open file handle to FileResponse.
+    # FileResponse will close it, and then it is deleted.
     
-    os.unlink(temp_master_zip.name)
+    temp_file = tempfile.NamedTemporaryFile(delete=True) 
     
-    response = HttpResponse(data, content_type='application/zip')
-    response['Content-Disposition'] = 'attachment; filename=all_folders.zip'
+    with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as master_zip:
+        used_names = set()
+        for folder in root_folders:
+            # Determine unique top-level folder name in zip
+            base_name = folder.name
+            candidate_name = base_name
+            counter = 1
+            while candidate_name in used_names:
+                candidate_name = f"{base_name}_{counter}"
+                counter += 1
+            used_names.add(candidate_name)
+            
+            # Add folder contents directly to master zip
+            _add_folder_to_zip(master_zip, folder, candidate_name)
+            
+            # Update status
+            if not folder.is_downloaded:
+                folder.is_downloaded = True
+                folder.save()
+
+    # Reset file pointer to beginning so it can be read
+    temp_file.seek(0)
+    
+    response = FileResponse(temp_file, as_attachment=True, filename='all_folders.zip')
+    return response
+
+@login_required
+def download_oldest_20_zip(request):
+    if not request.user.is_superuser:
+        raise Http404
+
+    # Fetch 20 oldest root folders
+    root_folders = Folder.objects.filter(parent__isnull=True).order_by('created_at')[:20]
+    
+    import tempfile
+    from django.http import FileResponse
+    
+    temp_file = tempfile.NamedTemporaryFile(delete=True) 
+    
+    with zipfile.ZipFile(temp_file, 'w', zipfile.ZIP_DEFLATED) as master_zip:
+        used_names = set()
+        for folder in root_folders:
+            base_name = folder.name
+            candidate_name = base_name
+            counter = 1
+            while candidate_name in used_names:
+                candidate_name = f"{base_name}_{counter}"
+                counter += 1
+            used_names.add(candidate_name)
+            
+            _add_folder_to_zip(master_zip, folder, candidate_name)
+            
+            if not folder.is_downloaded:
+                folder.is_downloaded = True
+                folder.save()
+
+    temp_file.seek(0)
+    
+    response = FileResponse(temp_file, as_attachment=True, filename='oldest_20_folders.zip')
     return response
 
 @login_required
@@ -291,4 +319,15 @@ def delete_downloaded_items(request):
         # Add message
         # from django.contrib import messages (ensure imported if not already)
     
+    return redirect('admin_dashboard')
+
+@login_required
+def reset_download_status(request):
+    if not request.user.is_superuser:
+        raise Http404
+        
+    if request.method == 'POST':
+        # Reset is_downloaded to False for all folders
+        Folder.objects.update(is_downloaded=False)
+        
     return redirect('admin_dashboard')

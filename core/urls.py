@@ -20,7 +20,9 @@ urlpatterns = [
     path('file/download/<int:file_id>/', views.download_file, name='download_file'),
     path('folder/download/<int:folder_id>/', views.download_folder_zip, name='download_folder_zip'),
     path('download-all/', views.download_all_zip, name='download_all_zip'),
+    path('download-oldest-20/', views.download_oldest_20_zip, name='download_oldest_20_zip'),
     path('delete-downloaded/', views.delete_downloaded_items, name='delete_downloaded_items'),
+    path('reset-download-status/', views.reset_download_status, name='reset_download_status'),
     
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
 ]
